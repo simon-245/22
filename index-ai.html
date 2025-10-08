@@ -19,11 +19,15 @@ body{font-family:system-ui;padding:20px;text-align:center}
 
 <script>
 const target = Math.floor(Math.random()*100)+1;
-let turn = 'H';
 let aiMin = 1, aiMax = 100;
+let humanMin = 1, humanMax = 100;
 let gameOver = false;
 const logEl = document.getElementById('log');
 function log(m){ const d=document.createElement('div'); d.textContent=m; logEl.appendChild(d); }
+
+// Random first turn
+let turn = Math.random() < 0.5 ? 'H' : 'A';
+document.getElementById('turn').textContent = turn === 'H' ? 'You' : 'AI';
 
 document.getElementById('submit').addEventListener('click', ()=>{
   if(gameOver || turn!=='H') return;
@@ -31,20 +35,46 @@ document.getElementById('submit').addEventListener('click', ()=>{
   if(isNaN(val)) return alert('Enter number');
   const res = val===target?'Correct!':val<target?'Too low':'Too high';
   log(`You: ${val} → ${res}`);
+  
   if(val===target){ log('🎉 You win!'); gameOver=true; return; }
+
+  if(res==='Too low') humanMin = val+1;
+  else humanMax = val-1;
+
   turn='A'; document.getElementById('turn').textContent='AI';
-  setTimeout(aiTurn,800);
+  setTimeout(aiTurn, 800);
 });
 
 function aiTurn(){
-  const guess = Math.floor((aiMin+aiMax)/2);
+  // AI candidate: middle of its range
+  let middle = Math.floor((aiMin + aiMax)/2);
+
+  // Human likely guess: middle of their range
+  let humanGuess = Math.floor((humanMin + humanMax)/2);
+
+  // If human likely to overshoot, adjust AI guess
+  let guess;
+  if(humanGuess > middle) guess = middle + 1;
+  else if(humanGuess < middle) guess = middle - 1;
+  else guess = middle;
+
+  // Ensure guess stays in AI range
+  guess = Math.max(aiMin, Math.min(aiMax, guess));
+
   const res = guess===target?'Correct!':guess<target?'Too low':'Too high';
   log(`AI: ${guess} → ${res}`);
+
   if(guess===target){ log('🤖 AI wins!'); gameOver=true; return; }
+
   if(res==='Too low') aiMin = guess+1;
   else aiMax = guess-1;
+
   turn='H'; document.getElementById('turn').textContent='You';
 }
+
+
+// If AI goes first
+if(turn==='A') setTimeout(aiTurn, 800);
 </script>
 </body>
 </html>
