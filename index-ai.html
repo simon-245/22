@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Number Guess Duel - AI</title>
+<style>
+body{font-family:system-ui;padding:20px;text-align:center}
+#log{margin-top:20px}
+</style>
+</head>
+<body>
+<h2>Number Guess Duel - You vs AI</h2>
+<p>Target is between 1 and 100</p>
+<p>Turn: <span id="turn">You</span></p>
+<input type="number" id="guess" min="1" max="100" placeholder="Enter guess">
+<button id="submit">Guess</button>
+<div id="log"></div>
+
+<script>
+const target = Math.floor(Math.random()*100)+1;
+let turn = 'H';
+let aiMin = 1, aiMax = 100;
+let gameOver = false;
+const logEl = document.getElementById('log');
+function log(m){ const d=document.createElement('div'); d.textContent=m; logEl.appendChild(d); }
+
+document.getElementById('submit').addEventListener('click', ()=>{
+  if(gameOver || turn!=='H') return;
+  const val = parseInt(document.getElementById('guess').value);
+  if(isNaN(val)) return alert('Enter number');
+  const res = val===target?'Correct!':val<target?'Too low':'Too high';
+  log(`You: ${val} → ${res}`);
+  if(val===target){ log('🎉 You win!'); gameOver=true; return; }
+  turn='A'; document.getElementById('turn').textContent='AI';
+  setTimeout(aiTurn,800);
+});
+
+function aiTurn(){
+  const guess = Math.floor((aiMin+aiMax)/2);
+  const res = guess===target?'Correct!':guess<target?'Too low':'Too high';
+  log(`AI: ${guess} → ${res}`);
+  if(guess===target){ log('🤖 AI wins!'); gameOver=true; return; }
+  if(res==='Too low') aiMin = guess+1;
+  else aiMax = guess-1;
+  turn='H'; document.getElementById('turn').textContent='You';
+}
+</script>
+</body>
+</html>
