@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Number Guess Duel - AI</title>
+<title>Number Guess Duel - Minimax AI</title>
 <style>
 body{font-family:system-ui;padding:20px;text-align:center}
 #log{margin-top:20px}
@@ -22,6 +22,7 @@ const target = Math.floor(Math.random()*100)+1;
 let aiMin = 1, aiMax = 100;
 let humanMin = 1, humanMax = 100;
 let gameOver = false;
+const usedNumbers = new Set();
 const logEl = document.getElementById('log');
 function log(m){ const d=document.createElement('div'); d.textContent=m; logEl.appendChild(d); }
 
@@ -33,48 +34,71 @@ document.getElementById('submit').addEventListener('click', ()=>{
   if(gameOver || turn!=='H') return;
   const val = parseInt(document.getElementById('guess').value);
   if(isNaN(val)) return alert('Enter number');
+
   const res = val===target?'Correct!':val<target?'Too low':'Too high';
   log(`You: ${val} → ${res}`);
-  
+
   if(val===target){ log('🎉 You win!'); gameOver=true; return; }
 
   if(res==='Too low') humanMin = val+1;
   else humanMax = val-1;
 
+  usedNumbers.add(val);
+
   turn='A'; document.getElementById('turn').textContent='AI';
-  setTimeout(aiTurn, 800);
+  setTimeout(aiTurn, 500);
 });
 
+// Minimax-style AI
 function aiTurn(){
-  // AI candidate: middle of its range
-  let middle = Math.floor((aiMin + aiMax)/2);
+  let bestGuess = aiMin;
+  let bestScore = -Infinity;
 
-  // Human likely guess: middle of their range
-  let humanGuess = Math.floor((humanMin + humanMax)/2);
+  // Consider all possible guesses within AI range
+  for(let g = aiMin; g <= aiMax; g++){
+    if(usedNumbers.has(g)) continue;
 
-  // If human likely to overshoot, adjust AI guess
-  let guess;
-  if(humanGuess > middle) guess = middle + 1;
-  else if(humanGuess < middle) guess = middle - 1;
-  else guess = middle;
+    // Simulate min-max outcome
+    let score = minimax(g, aiMin, aiMax, humanMin, humanMax, true, 0);
+    if(score > bestScore){
+      bestScore = score;
+      bestGuess = g;
+    }
+  }
 
-  // Ensure guess stays in AI range
-  guess = Math.max(aiMin, Math.min(aiMax, guess));
+  usedNumbers.add(bestGuess);
 
-  const res = guess===target?'Correct!':guess<target?'Too low':'Too high';
-  log(`AI: ${guess} → ${res}`);
+  const res = bestGuess===target?'Correct!':bestGuess<target?'Too low':'Too high';
+  log(`AI: ${bestGuess} → ${res}`);
 
-  if(guess===target){ log('🤖 AI wins!'); gameOver=true; return; }
+  if(bestGuess===target){ log('🤖 AI wins!'); gameOver=true; return; }
 
-  if(res==='Too low') aiMin = guess+1;
-  else aiMax = guess-1;
+  if(res==='Too low') aiMin = bestGuess+1;
+  else aiMax = bestGuess-1;
 
   turn='H'; document.getElementById('turn').textContent='You';
 }
 
+// Minimax function: returns +1 if AI likely to win, -1 if human likely to win
+function minimax(aiGuess, aiLo, aiHi, huLo, huHi, isAITurn, depth){
+  if(aiGuess === target) return 1; // AI wins
+  if(huLo <= target && target <= huHi && !isAITurn && depth > 0) return -1; // human could win next
 
-// If AI goes first
-if(turn==='A') setTimeout(aiTurn, 800);
+  // Simulate next turn
+  if(isAITurn){
+    let newAiLo = aiGuess < target ? aiGuess + 1 : aiLo;
+    let newAiHi = aiGuess > target ? aiGuess - 1 : aiHi;
+    return minimax(Math.floor((newAiLo+newAiHi)/2), newAiLo, newAiHi, huLo, huHi, false, depth+1);
+  } else {
+    let humanGuess = Math.floor((huLo+huHi)/2);
+    let newHuLo = humanGuess < target ? humanGuess + 1 : huLo;
+    let newHuHi = humanGuess > target ? humanGuess - 1 : huHi;
+    return minimax(Math.floor((aiLo+aiHi)/2), aiLo, aiHi, newHuLo, newHuHi, true, depth+1);
+  }
+}
+
+// Start AI turn if AI goes first
+if(turn==='A') setTimeout(aiTurn, 500);
 </script>
 </body>
 </html>
